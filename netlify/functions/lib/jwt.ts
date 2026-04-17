@@ -1,6 +1,5 @@
 import jwt from "jsonwebtoken";
 
-const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_EXPIRES_IN = "8h";
 
 export interface JwtAdminPayload {
@@ -11,13 +10,15 @@ export interface JwtAdminPayload {
 }
 
 export function signAdminToken(email: string): string {
-  if (!JWT_SECRET) throw new Error("JWT_SECRET is not configured.");
-  return jwt.sign({ sub: "admin", email }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+  const secret = process.env.JWT_SECRET;
+  if (!secret) throw new Error("JWT_SECRET is not configured.");
+  return jwt.sign({ sub: "admin", email }, secret, { expiresIn: JWT_EXPIRES_IN });
 }
 
 export function verifyAdminToken(token: string): JwtAdminPayload {
-  if (!JWT_SECRET) throw new Error("JWT_SECRET is not configured.");
-  const payload = jwt.verify(token, JWT_SECRET) as JwtAdminPayload;
+  const secret = process.env.JWT_SECRET;
+  if (!secret) throw new Error("JWT_SECRET is not configured.");
+  const payload = jwt.verify(token, secret) as JwtAdminPayload;
   if (payload.sub !== "admin") throw new Error("Invalid token subject.");
   return payload;
 }
