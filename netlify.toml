@@ -1,0 +1,57 @@
+[build]
+  functions = "netlify/functions"
+  publish = "public"
+
+[functions]
+  node_bundler = "esbuild"
+  external_node_modules = ["mongoose"]
+
+# Route all /api/* requests to the corresponding function
+[[redirects]]
+  from = "/api/auth/login"
+  to = "/.netlify/functions/auth"
+  status = 200
+
+[[redirects]]
+  from = "/api/blog/admin"
+  to = "/.netlify/functions/blog-admin"
+  status = 200
+
+[[redirects]]
+  from = "/api/blog/admin/:path"
+  to = "/.netlify/functions/blog-admin"
+  status = 200
+
+[[redirects]]
+  from = "/api/blog/:slug"
+  to = "/.netlify/functions/blog"
+  status = 200
+
+[[redirects]]
+  from = "/api/blog"
+  to = "/.netlify/functions/blog"
+  status = 200
+
+[[redirects]]
+  from = "/api/leads"
+  to = "/.netlify/functions/leads"
+  status = 200
+
+[[redirects]]
+  from = "/api/contacts/admin/read/:id"
+  to = "/.netlify/functions/contacts-admin"
+  status = 200
+
+[[redirects]]
+  from = "/api/contacts/admin/:id"
+  to = "/.netlify/functions/contacts-admin"
+  status = 200
+
+[[redirects]]
+  from = "/api/contacts/admin"
+  to = "/.netlify/functions/contacts-admin"
+  status = 200
+
+[dev]
+  port = 8888
+  targetPort = 8888
