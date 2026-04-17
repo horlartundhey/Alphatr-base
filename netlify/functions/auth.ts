@@ -1,5 +1,7 @@
 import type { Handler, HandlerEvent } from "@netlify/functions";
 import bcrypt from "bcryptjs";
+import { connectDB } from "./lib/db";
+import { AdminUser } from "./lib/models/AdminUser";
 import { signAdminToken } from "./lib/jwt";
 import { corsHeaders, jsonResponse } from "./lib/http";
 
@@ -15,13 +17,6 @@ export const handler: Handler = async (event: HandlerEvent) => {
     return jsonResponse({ ok: false, message: "Method not allowed." }, 405, headers);
   }
 
-  const adminEmail = process.env.ADMIN_EMAIL;
-  const adminPasswordHash = process.env.ADMIN_PASSWORD_HASH;
-
-  if (!adminEmail || !adminPasswordHash) {
-    return jsonResponse({ ok: false, message: "Admin credentials not configured." }, 500, headers);
-  }
-
   let body: { email?: string; password?: string };
   try {
     body = JSON.parse(event.body || "{}");
@@ -35,14 +30,24 @@ export const handler: Handler = async (event: HandlerEvent) => {
     return jsonResponse({ ok: false, message: "Email and password are required." }, 400, headers);
   }
 
-  // Constant-time email comparison to prevent user enumeration
-  const emailMatch = email.toLowerCase() === adminEmail.toLowerCase();
-  const passwordMatch = await bcrypt.compare(password, adminPasswordHash);
+  try {
+    await connectDB();
 
-  if (!emailMatch || !passwordMatch) {
-    return jsonResponse({ ok: false, message: "Invalid credentials." }, 401, headers);
+    // Look up admin by email
+    const admin = await AdminUser.findOne({ email: email.toLowerCase() }).select("+passwordHash");
+
+    // Always run bcrypt compare to prevent timing attacks (even if admin not found)
+    const dummyHash = "$2a$12$invalidhashpadding000000000000000000000000000000000000";
+    const passwordMatch = await bcrypt.compare(password, admin?.passwordHash ?? dummyHash);
+
+    if (!admin || !passwordMatch) {
+      return jsonResponse({ ok: false, message: "Invalid credentials." }, 401, headers);
+    }
+
+    const token = signAdminToken(admin.email);
+    return jsonResponse({ ok: true, token }, 200, headers);
+  } catch (err) {
+    console.error("[auth] Error:", err);
+    return jsonResponse({ ok: false, message: "Internal server error." }, 500, headers);
   }
-
-  const token = signAdminToken(email);
-  return jsonResponse({ ok: true, token }, 200, headers);
 };
